@@ -87,5 +87,11 @@ target_link_libraries(magiskboot_exe
 #    libzopfli
     Threads::Threads)
 
+
+if(MINGW OR WIN32)
+    target_link_libraries(magiskboot_exe bcrypt)
+    target_link_options(magiskboot_exe PRIVATE -static-libgcc -static-libstdc++ -static)
+endif()
+
 include(GNUInstallDirs)
 install(TARGETS magiskboot_exe DESTINATION ${CMAKE_INSTALL_BINDIR})

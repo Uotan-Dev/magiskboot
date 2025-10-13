@@ -162,9 +162,9 @@ int openat (int dirfd, const char *pathname, int flags, ...) {
         va_start(ap, flags);
         mode_t mode = (mode_t) va_arg(ap, int);
         va_end(ap);
-        ret = open(pathname, flags, mode);
+        ret = open(real_pathname, flags, mode);
     } else
-        ret = open(pathname, flags);
+        ret = open(real_pathname, flags);
 
     free(real_pathname);
 

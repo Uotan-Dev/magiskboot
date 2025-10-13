@@ -102,7 +102,15 @@ if (WIN32)
 
     # llvm-mingw uses a different mangling
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--wrap=CreateFileW@28")
+    
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections")
+    
+    if (FULL_RUST_LTO)
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto")
+    endif()
 endif()
+
+
 
 if (EMSCRIPTEN)
     message(STATUS "Using Emscripten mmap stubs")

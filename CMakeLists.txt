@@ -104,6 +104,13 @@ if (NOT WITHOUT_BUILD)
 
     add_compile_options(-Wall)
 
+    if (CMAKE_BUILD_TYPE MATCHES "MinSizeRel")
+        add_compile_options(-ffunction-sections -fdata-sections)
+        if (FULL_RUST_LTO)
+            add_compile_options(-flto)
+        endif()
+    endif()
+
     include(CMakeLists.rust.txt)
     include(CMakeLists.magiskboot.txt)
 

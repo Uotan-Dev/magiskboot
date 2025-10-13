@@ -1,0 +1,73 @@
+--- a/native/src/boot/cpio.rs
++++ b/native/src/boot/cpio.rs
+@@ -363,14 +363,36 @@
+             S_IFLNK => {
+                 buf.clear();
+                 buf.push_str(str::from_utf8(entry.data.as_slice())?);
+-                out.create_symlink_to(&buf)?;
++                if let Err(e) = out.create_symlink_to(&buf) {
++                    #[cfg(target_os = "windows")]
++                    {
++                        // On Windows, if symlink creation fails, just warn and continue
++                        // instead of aborting the entire cpio extraction
++                        eprintln!("Warning: Failed to create symlink {} -> {}: {}", 
++                                 out.as_str(), buf.as_str(), e);
++                    }
++                    #[cfg(not(target_os = "windows"))]
++                    {
++                        // On other platforms, still treat symlink failure as error
++                        return Err(e.into());
++                    }
++                }
+             }
+             S_IFBLK | S_IFCHR => {
+                 let dev = unsafe { makedev(entry.rdevmajor.try_into()?, entry.rdevminor.try_into()?) };
+                 unsafe { mknod(out.as_ptr().cast(), entry.mode, dev) };
+             }
+             _ => {
+-                return Err(log_err!("unknown entry type"));
++                #[cfg(target_os = "windows")]
++                {
++                    // On Windows, log the unknown entry type and continue instead of failing
++                    eprintln!("Warning: Skipping unknown entry type: mode=0o{:o}, type=0o{:o}, path={}", 
++                             entry.mode, entry.mode & S_IFMT, out.as_str());
++                }
++                #[cfg(not(target_os = "windows"))]
++                {
++                    return Err(log_err!("unknown entry type"));
++                }
+             }
+         }
+         Ok(())
+@@ -569,9 +591,17 @@
+     fn restore(&mut self) -> LoggedResult<()> {
+         let mut backups = HashMap::<String, Box<CpioEntry>>::new();
+         let mut rm_list = String::new();
+-        self.entries
+-            .extract_if(|name, _| name.starts_with(".backup/"))
+-            .for_each(|(name, mut entry)| {
++        
++        // Collect backup entries to be removed
++        let backup_keys: Vec<String> = self.entries
++            .keys()
++            .filter(|name| name.starts_with(".backup/"))
++            .cloned()
++            .collect();
++        
++        // Process and remove backup entries
++        for name in backup_keys {
++            if let Some(mut entry) = self.entries.remove(&name) {
+                 if name == ".backup/.rmlist" {
+                     if let Ok(data) = str::from_utf8(&entry.data) {
+                         rm_list.push_str(data);
+@@ -585,7 +615,9 @@
+                     eprintln!("Restore [{name}] -> [{new_name}]");
+                     backups.insert(new_name.to_string(), entry);
+                 }
+-            });
++            }
++        }
++        
+         self.rm(".backup", false);
+         if rm_list.is_empty() && backups.is_empty() {
+             self.entries.clear();
