@@ -60,6 +60,7 @@ if (WIN32)
     target_sources(platform_stubs PRIVATE
         src/libc-compat/winsup/acl.c
         src/libc-compat/winsup/at.c
+        src/libc-compat/winsup/bcrypt_compat.c
         src/libc-compat/winsup/dirent.c
         src/libc-compat/winsup/file.c
         src/libc-compat/winsup/io.c
@@ -69,6 +70,7 @@ if (WIN32)
         src/libc-compat/winsup/open.c
         src/libc-compat/winsup/stat.c
         src/libc-compat/winsup/str.c
+        src/libc-compat/winsup/sync_compat.c
         src/libc-compat/winsup/uio.c
         src/libc-compat/winsup/internal/assert.c
         src/libc-compat/winsup/internal/errno.c
@@ -102,6 +104,10 @@ if (WIN32)
 
     # llvm-mingw uses a different mangling
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--wrap=CreateFileW@28")
+    
+    # Allow our Windows 7 compatible implementations to override Rust's DLL imports
+    # Link platform_stubs before Rust library so our symbols take precedence
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--allow-multiple-definition")
     
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections")
     

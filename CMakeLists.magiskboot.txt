@@ -12,6 +12,24 @@ corrosion_set_env_vars(magiskboot
                        CXXBRIDGE_GEN_TARGET_OS=${CXXBRIDGE_GEN_TARGET_OS}
                        RUSTC_BOOTSTRAP=${RUSTC_BOOTSTRAP})
 
+# Remove Windows 8+ incompatible DLL import stubs from Rust static library
+if(MINGW OR WIN32)
+    add_custom_target(strip_rust_imports ALL
+        COMMAND ${CMAKE_COMMAND} -E echo "Removing Windows 8+ DLL import stubs from libmagiskboot.a"
+        COMMAND ${CMAKE_AR} d $<TARGET_FILE:magiskboot-static> bcryptprimitives.dllt.o || true
+        COMMAND ${CMAKE_AR} d $<TARGET_FILE:magiskboot-static> bcryptprimitives.dllh.o || true
+        COMMAND ${CMAKE_AR} d $<TARGET_FILE:magiskboot-static> bcryptprimitives.dlls00000.o || true
+        COMMAND ${CMAKE_AR} d $<TARGET_FILE:magiskboot-static> api-ms-win-core-synch-l1-2-0.dllt.o || true
+        COMMAND ${CMAKE_AR} d $<TARGET_FILE:magiskboot-static> api-ms-win-core-synch-l1-2-0.dllh.o || true
+        COMMAND ${CMAKE_AR} d $<TARGET_FILE:magiskboot-static> api-ms-win-core-synch-l1-2-0.dlls00000.o || true
+        COMMAND ${CMAKE_AR} d $<TARGET_FILE:magiskboot-static> api-ms-win-core-synch-l1-2-0.dlls00001.o || true
+        COMMAND ${CMAKE_AR} d $<TARGET_FILE:magiskboot-static> api-ms-win-core-synch-l1-2-0.dlls00002.o || true
+        DEPENDS magiskboot-static
+        COMMENT "Removing incompatible Windows 8+ import stubs from libmagiskboot.a"
+        VERBATIM
+    )
+endif()
+
 add_custom_target(workspace_cleanup
                  COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_SOURCE_DIR}/src/Magisk/native/src/.cargo/config.toml
                  COMMENT "Cleaning up workspace")
@@ -25,6 +43,9 @@ add_library(libbase STATIC
     src/Magisk/native/src/external/cxx-rs/src/cxx.cc
     src/magiskbase-rs-wrapper.cc)
 add_dependencies(libbase magiskboot-static)
+if(MINGW OR WIN32)
+    add_dependencies(libbase strip_rust_imports)
+endif()
 target_compile_definitions(libbase PRIVATE -DRUST_CXX_NO_EXCEPTIONS)
 add_dependencies(libbase prepared_generated_directory)
 target_include_directories(libbase PRIVATE
@@ -75,10 +96,14 @@ add_executable(magiskboot_exe
     src/Magisk/native/src/boot/format.cpp
     src/magiskboot-rs-wrapper.cc)
 add_dependencies(magiskboot_exe magiskboot-static)
+if(MINGW OR WIN32)
+    add_dependencies(magiskboot_exe strip_rust_imports)
+endif()
 target_include_directories(magiskboot_exe PRIVATE
     src/Magisk/native/src/external/cxx-rs/include)
 target_link_libraries(magiskboot_exe
     libbase
+    platform_stubs
     magiskboot-static
     LibLZMA::LibLZMA
     PkgConfig::liblz4

@@ -2,5 +2,7 @@
 /include/flags.h
 /.cargo/
 /llvm-mingw/
+/build-llvm-mingw/
+/build-windows-i686/
 
 
