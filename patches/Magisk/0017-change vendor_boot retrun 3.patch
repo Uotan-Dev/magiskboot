@@ -1,0 +1,27 @@
+diff --git a/native/src/boot/bootimg.cpp b/native/src/boot/bootimg.cpp
+index 61ad881..68c9080 100644
+--- a/native/src/boot/bootimg.cpp
++++ b/native/src/boot/bootimg.cpp
+@@ -15,6 +15,11 @@ using namespace std;
+ #define SHA256_DIGEST_SIZE 32
+ #define SHA_DIGEST_SIZE 20
+ 
++#define RETURN_OK       0
++#define RETURN_ERROR    1
++#define RETURN_CHROMEOS 2
++#define RETURN_VENDOR   3
++
+ static void decompress(FileFormat type, int fd, const void *in, size_t size) {
+     decompress_bytes(type, byte_view { in, size }, fd);
+ }
+@@ -650,7 +655,9 @@ int unpack(const char *image, bool skip_decomp, bool hdr) {
+     // Dump bootconfig
+     dump(boot.bootconfig, boot.hdr->bootconfig_size(), BOOTCONFIG_FILE);
+ 
+-    return boot.flags[CHROMEOS_FLAG] ? 2 : 0;
++    if (boot.flags[CHROMEOS_FLAG]) return RETURN_CHROMEOS;
++    if (boot.hdr->is_vendor()) return RETURN_VENDOR;
++    return RETURN_OK;
+ }
+ 
+ #define file_align_with(page_size) \

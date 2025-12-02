@@ -1,0 +1,29 @@
+diff --git a/native/src/base/files.rs b/native/src/base/files.rs
+index 6c8b721..1cf6227 100644
+--- a/native/src/base/files.rs
++++ b/native/src/base/files.rs
+@@ -227,8 +227,22 @@ impl Utf8CStr {
+     pub fn remove_all(&self) -> OsResultStatic<()> {
+         let attr = self.get_attr()?;
+         if attr.is_dir() {
+-            let mut dir = Directory::try_from(open_fd(self, O_RDONLY | O_CLOEXEC, 0)?)?;
+-            dir.remove_all()?;
++            cfg_if::cfg_if! {
++                if #[cfg(target_os = "windows")] {
++                    // On Windows, use std::fs::remove_dir_all for better compatibility
++                    std::fs::remove_dir_all(self.as_str())
++                        .map_err(|e| OsError::with_os_error(
++                            e.raw_os_error().unwrap_or(libc::EIO),
++                            "remove_dir_all".into(),
++                            Some(self),
++                            None,
++                        ))?;
++                    return Ok(());
++                } else {
++                    let mut dir = Directory::try_from(open_fd(self, O_RDONLY | O_CLOEXEC, 0)?)?;
++                    dir.remove_all()?;
++                }
++            }
+         }
+         Ok(self.remove()?)
+     }

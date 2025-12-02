@@ -1,0 +1,13 @@
+diff --git a/native/src/boot/bootimg.cpp b/native/src/boot/bootimg.cpp
+index 61ad881..68c9080 100644
+--- a/native/src/boot/bootimg.cpp
++++ b/native/src/boot/bootimg.cpp
+@@ -240,7 +240,7 @@ static int find_dtb_offset(const uint8_t *buf, unsigned sz) {
+ 
+         // Check that fdt_header.totalsize does not overflow kernel image size
+         uint32_t totalsize = fdt_hdr->totalsize;
+-        if (totalsize > end - curr)
++        if (totalsize > end - curr || totalsize <= 0x48)
+             continue;
+ 
+         // Check that fdt_header.off_dt_struct does not overflow kernel image size
