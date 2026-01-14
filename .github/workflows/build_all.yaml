@@ -135,3 +135,46 @@ jobs:
           if-no-files-found: error
           name: ${{ env.progname }}-${{ needs.vars.outputs.short_sha }}-${{ needs.vars.outputs.build_type }}
           path: ${{ github.workspace }}/${{ env.progname }}-out/magiskboot*
+
+  build-linux-arm64:
+    name: Build (Linux ARM64)
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      actions: write
+    needs: [vars]
+    container:
+      image: alpine:edge
+      volumes:
+        - ${{ github.workspace }}:/magiskboot_workspace
+      options: --security-opt seccomp=unconfined
+    steps:
+      - name: Prepare (Alpine Linux)
+        run: |
+          apk update
+          apk add build-base linux-headers bash wget file xxd xz-dev lz4-dev bzip2-dev zlib-dev \
+                  pkgconf clang lld libc++-dev cmake samurai rust cargo llvm-libunwind-dev
+      - name: Synchronize (source)
+        uses: yogeshlonkar/wait-for-jobs@v0.2.1
+        with:
+          jobs: 'Prepare (source)'
+      - name: Prepare (source)
+        uses: actions/download-artifact@v4
+        with:
+          name: srcpkg
+      - name: Build
+        run: |
+          tar -xf magiskboot_*-src.tar.xz
+          cd magiskboot_*-src/
+          CC=clang CXX=clang++ cmake -DCMAKE_C_FLAGS="-Os" -DCMAKE_CXX_FLAGS="-g -Os -ffunction-sections -fdata-sections -fno-rtti -fno-exceptions" -DCMAKE_EXE_LINKER_FLAGS="-s -Wl,--gc-sections" -DPREFER_STATIC_LINKING=true -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j $(nproc)
+          file build/magiskboot*
+          ldd build/magiskboot* || true
+          ./build/magiskboot* || true
+          mkdir -p /magiskboot_workspace/${{ env.progname }}-out
+          cp -afv build/magiskboot* /magiskboot_workspace/${{ env.progname }}-out
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: error
+          name: ${{ env.progname }}-${{ needs.vars.outputs.short_sha }}-${{ needs.vars.outputs.build_type }}-arm64
+          path: ${{ github.workspace }}/${{ env.progname }}-out/magiskboot*
