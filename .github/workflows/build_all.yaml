@@ -1,7 +1,6 @@
 name: build_all
 on:
   workflow_dispatch:
-
   push:
     branches-ignore:
       - main
@@ -12,7 +11,6 @@ on:
       - 'LICENSE'
       - '**/*.md'
       - 'README.md'
-
   pull_request:
     paths-ignore:
       - '.github/workflows/release.yaml'
@@ -38,19 +36,13 @@ jobs:
       short_sha: ${{ steps.get_short_sha.outputs.SHORT_SHA }}
       cmake_build_type: ${{ steps.detect_build_type.outputs.CMAKE_BUILD_TYPE }}
       build_type: ${{ steps.detect_build_type.outputs.BUILD_TYPE }}
-      full_lto: ${{ steps.determine_lto_type.outputs.FULL_LTO }}
-      lto_ldflags: ${{ steps.determine_lto_type.outputs.LTO_LDFLAGS }}
-
       cxx_flags: ${{ steps.detect_build_type.outputs.CXXFLAGS }}
       c_flags: ${{ steps.detect_build_type.outputs.CFLAGS }}
       ld_flags: ${{ steps.detect_build_type.outputs.LDFLAGS }}
-
     steps:
       - name: Determine short Git commit SHA
         id: get_short_sha
-        run: |
-          echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c 1-7`" | tee -a $GITHUB_OUTPUT
-
+        run: echo "SHORT_SHA=$(echo $GITHUB_SHA | cut -c 1-7)" >> $GITHUB_OUTPUT
       - name: Detect build types
         id: detect_build_type
         run: |
@@ -59,17 +51,16 @@ jobs:
             if [[ "${{ github.event.inputs.debug-build }}" == "true" ]]; then
               CMAKE_BUILD_TYPE=Debug
             else
-              # I hope this could make magiskboot more small
               CFLAGS="-Os"
               CXXFLAGS="-g -Os -ffunction-sections -fdata-sections -fno-rtti -fno-exceptions"
               LDFLAGS="-s -Wl,--gc-sections"
             fi
           fi
-          echo "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}" | tee -a $GITHUB_OUTPUT
-          echo "BUILD_TYPE=${CMAKE_BUILD_TYPE,,}" | tee -a $GITHUB_OUTPUT
-          echo "CFLAGS=${CFLAGS}" | tee -a $GITHUB_OUTPUT
-          echo "CXXFLAGS=${CXXFLAGS}" | tee -a $GITHUB_OUTPUT
-          echo "LDFLAGS=${LDFLAGS}" | tee -a $GITHUB_OUTPUT
+          echo "CMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE" >> $GITHUB_OUTPUT
+          echo "BUILD_TYPE=${CMAKE_BUILD_TYPE,,}" >> $GITHUB_OUTPUT
+          echo "CFLAGS=$CFLAGS" >> $GITHUB_OUTPUT
+          echo "CXXFLAGS=$CXXFLAGS" >> $GITHUB_OUTPUT
+          echo "LDFLAGS=$LDFLAGS" >> $GITHUB_OUTPUT
 
   src:
     name: Prepare (source)
@@ -79,29 +70,22 @@ jobs:
         run: |
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --no-install-suggests patch cmake ninja-build
-
       - name: Prepare (Git)
         run: |
           git config --global user.email "user@example.com"
           git config --global user.name "Example user"
-
       - name: Prepare (checkout)
         uses: actions/checkout@v4
-
       - name: Prepare (submodule)
         run: |
           ./scripts/clone_submodules.sh
-
           for _repo in $(git submodule foreach --recursive --quiet 'env'); do
             git config --global --add safe.directory "$_repo"
           done
-          unset _repo
-
       - name: Package source
         run: |
           CC=true cmake -B build -G Ninja -DCMAKE_C_COMPILER_WORKS=YES -DWITHOUT_BUILD=ON
           cmake --build build -t package_source -v
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -115,74 +99,39 @@ jobs:
     permissions:
       actions: write
     needs: [vars]
-    strategy:
-      matrix:
-        include:
-          #- os: "ubuntu"
-          #  tag: "jammy"
-          #  # XXX: llvm ver is older than rust
-          #  full_lto: "OFF"
-          #  lto_ldflags: ""
-
-          - os: "alpine"
-            tag: "edge"
-            full_lto: ${{ needs.vars.outputs.full_lto }}
-            lto_ldflags: ${{ needs.vars.outputs.lto_ldflags }}
-
     container:
-      image: ${{ matrix.os }}:${{ matrix.tag }}
+      image: alpine:edge
       volumes:
         - ${{ github.workspace }}:/magiskboot_workspace
-
-      # New versions of glibc use the new clone3() syscall which has not
-      # yet been whitelisted in GitHub's secomp profile. To prevent jobs
-      # using these distros from failing (e.g. openSUSE) change the
-      # secomp policy.
-      #
-      # See https://github.com/nmeum/android-tools/pull/48#issuecomment-944893176
       options: --security-opt seccomp=unconfined
-
     steps:
       - name: Prepare (Alpine Linux)
-        if: matrix.os == 'alpine'
         run: |
           apk update
           apk add build-base linux-headers bash wget file xxd xz-dev lz4-dev bzip2-dev zlib-dev \
                   pkgconf clang lld libc++-dev cmake samurai rust cargo llvm-libunwind-dev
-
       - name: Synchronize (source)
         uses: yogeshlonkar/wait-for-jobs@v0.2.1
         with:
           jobs: 'Prepare (source)'
-
       - name: Prepare (source)
         uses: actions/download-artifact@v4
         with:
           name: srcpkg
-
       - name: Build
         run: |
-          echo -e "\n### extract source ###\n"
           tar -xf magiskboot_*-src.tar.xz
-
           cd magiskboot_*-src/
-
-          echo -e "\n### configure ###\n"
           CC=clang CXX=clang++ cmake -DPREFER_STATIC_LINKING=true -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
-
-          echo -e "\n### build ###\n"
           cmake --build build -j $(nproc)
-
           file build/magiskboot*
           ldd build/magiskboot* || true
           ./build/magiskboot* || true
-          rm -rf /magiskboot_workspace/${{ env.progname }}-out
           mkdir -p /magiskboot_workspace/${{ env.progname }}-out
           cp -afv build/magiskboot* /magiskboot_workspace/${{ env.progname }}-out
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
-          name: ${{ env.progname }}-${{ needs.vars.outputs.short_sha }}-${{ needs.vars.outputs.build_type }}-${{ env.upload_prefix }}-${{ matrix.crt }}-${{ matrix.upload_suffix }}
+          name: ${{ env.progname }}-${{ needs.vars.outputs.short_sha }}-${{ needs.vars.outputs.build_type }}
           path: ${{ github.workspace }}/${{ env.progname }}-out/magiskboot*
