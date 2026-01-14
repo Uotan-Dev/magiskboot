@@ -71,20 +71,6 @@ jobs:
           echo "CXXFLAGS=${CXXFLAGS}" | tee -a $GITHUB_OUTPUT
           echo "LDFLAGS=${LDFLAGS}" | tee -a $GITHUB_OUTPUT
 
-      - name: Determine LTO type
-        id: determine_lto_type
-        run: |
-          FULL_LTO=OFF
-          LTO_LDFLAGS=""
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            if [[ "${{ github.event.inputs.full-lto }}" == "true" ]]; then
-              FULL_LTO=ON
-              LTO_LDFLAGS="-flto"
-            fi
-          fi
-          echo "FULL_LTO=${FULL_LTO}" | tee -a $GITHUB_OUTPUT
-          echo "LTO_LDFLAGS=${LTO_LDFLAGS}" | tee -a $GITHUB_OUTPUT
-
   src:
     name: Prepare (source)
     runs-on: ubuntu-latest
@@ -182,7 +168,7 @@ jobs:
           cd magiskboot_*-src/
 
           echo -e "\n### configure ###\n"
-          CC=clang CXX=clang++ cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
+          CC=clang CXX=clang++ cmake -DCMAKE_C_FLAGS="$CFLAGS -static" -DCMAKE_CXX_FLAGS="$CXXFLAGS -static" -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
 
           echo -e "\n### build ###\n"
           cmake --build build -j $(nproc)
