@@ -394,7 +394,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os_release: 14
+          - os_release: 15
             # yeah crossing x86_64 from arm64 host now...
             arch: "x86_64"
             cmake_arch: "x86_64"
