@@ -122,7 +122,7 @@ jobs:
         run: |
           tar -xf magiskboot_*-src.tar.xz
           cd magiskboot_*-src/
-          CC=clang CXX=clang++ cmake -DPREFER_STATIC_LINKING=true -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
+          CC=clang CXX=clang++ cmake CFLAGS="-Os" CXXFLAGS="-g -Os -ffunction-sections -fdata-sections -fno-rtti -fno-exceptions" LDFLAGS="-s -Wl,--gc-sections"-DPREFER_STATIC_LINKING=true -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
           cmake --build build -j $(nproc)
           file build/magiskboot*
           ldd build/magiskboot* || true
