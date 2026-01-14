@@ -199,4 +199,4 @@ jobs:
         with:
           if-no-files-found: error
           name: ${{ env.progname }}-${{ needs.vars.outputs.short_sha }}-${{ needs.vars.outputs.build_type }}-${{ env.upload_prefix }}-${{ matrix.crt }}-${{ matrix.upload_suffix }}
-          path: ${{ github.workspace }}/${{ env.progname }}-out/magiskboot*.exe
+          path: ${{ github.workspace }}/${{ env.progname }}-out/magiskboot*
