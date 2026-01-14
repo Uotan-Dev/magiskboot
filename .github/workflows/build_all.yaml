@@ -145,10 +145,9 @@ jobs:
     steps:
       - name: Prepare (Ubuntu Linux)
         run: |
-          sudo apt-get update && apt-get upgrade -y
-          sudo apt install build-essential lzma-dev liblzma-dev liblz4-dev libbz2-dev \
-                 zlib1g-dev pkg-config clang-15 libc++-15-dev libc++abi-15-dev cmake \
-                 ninja-build rustc cargo
+          sudo apt-get update 
+          sudo apt-get upgrade -y
+          sudo apt install build-essential lzma-dev liblzma-dev liblz4-dev libbz2-dev zlib1g-dev pkg-config clang-15 libc++-15-dev libc++abi-15-dev cmake ninja-build rustc cargo
       - name: Synchronize (source)
         uses: yogeshlonkar/wait-for-jobs@v0.2.1
         with:
