@@ -202,9 +202,8 @@ jobs:
       - name: Prepare (Host)
         run: |
           brew update
-          # HACK: ignore werid symlink conflict
-          brew install --overwrite coreutils file pkg-config cmake ninja llvm || true
-          brew install --overwrite coreutils file pkg-config cmake ninja llvm
+          brew upgrade
+          brew install --overwrite coreutils file pkg-config cmake ninja llvm xz lz4 rust
 
       - name: Prepare (Detect)
         id: detect-runner
@@ -215,54 +214,9 @@ jobs:
             echo "has_vcpkg=true" | tee -a $GITHUB_OUTPUT
           fi
 
-      - name: Cache (Vcpkg Bootstrap)
-        id: cache-vcpkg-boot
-        if: steps.detect-runner.outputs.has_vcpkg != 'true'
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/${{ env.progname }}-vcpkg-strap
-          key: vcpkg-${{ env.vcpkg_ver }}-${{ runner.os }}-${{ matrix.os_release }}-${{ runner.arch }}
-
-      - name: Prepare (Vcpkg source)
-        if: steps.detect-runner.outputs.has_vcpkg != 'true' && steps.cache-vcpkg-boot.outputs.cache-hit != 'true'
-        uses: actions/checkout@v4
-        with:
-          repository: microsoft/vcpkg
-          ref: ${{ env.vcpkg_ver }}
-          path: ${{ env.progname }}-vcpkg-strap
-
-      - name: Prepare (Vcpkg Bootstrap)
-        if: steps.detect-runner.outputs.has_vcpkg != 'true' && steps.cache-vcpkg-boot.outputs.cache-hit != 'true'
-        run: |
-          cd ${{ env.progname }}-vcpkg-strap
-          ./bootstrap-vcpkg.sh
-
-      - name: Prepare (Vcpkg)
-        if: steps.detect-runner.outputs.has_vcpkg != 'true'
-        run: |
-          rm -rf $GITHUB_WORKSPACE/${{ env.progname }}-vcpkg/
-          cp -af $GITHUB_WORKSPACE/${{ env.progname }}-vcpkg-strap/ \
-                 $GITHUB_WORKSPACE/${{ env.progname }}-vcpkg/
-
-          VCPKG_INSTALLATION_ROOT="${GITHUB_WORKSPACE}/${{ env.progname }}-vcpkg"
-
-          echo "${VCPKG_INSTALLATION_ROOT}" | tee -a $GITHUB_PATH
-          echo "VCPKG_INSTALLATION_ROOT=${VCPKG_INSTALLATION_ROOT}" | tee -a $GITHUB_ENV
-
       - name: Prepare (Environment)
         run: |
           echo "vcpkg_root=$VCPKG_INSTALLATION_ROOT" | tee -a $GITHUB_ENV
-
-      - name: Cache (Cross)
-        id: cache-cross-vcpkgs
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.vcpkg_root }}/installed
-          key: cross-vcpkgs-v2-${{ matrix.vcpkg_triplet }}-appleclang-macos-${{ matrix.os_release }}
-
-      - name: Prepare (Cross)
-        run: |
-          vcpkg install --host-triplet=${{ matrix.vcpkg_triplet }} liblzma lz4
 
       - name: Prepare (PATH)
         run: |
