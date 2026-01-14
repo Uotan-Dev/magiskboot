@@ -168,7 +168,7 @@ jobs:
           cd magiskboot_*-src/
 
           echo -e "\n### configure ###\n"
-          CC=clang CXX=clang++ cmake -DCMAKE_C_FLAGS="$CFLAGS -static" -DCMAKE_CXX_FLAGS="$CXXFLAGS -static" -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
+          CC=clang CXX=clang++ cmake -DPREFER_STATIC_LINKING -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
 
           echo -e "\n### build ###\n"
           cmake --build build -j $(nproc)
