@@ -136,20 +136,19 @@ jobs:
           name: ${{ env.progname }}-${{ needs.vars.outputs.short_sha }}-${{ needs.vars.outputs.build_type }}
           path: ${{ github.workspace }}/${{ env.progname }}-out/magiskboot*
 
-  build-linux-arm64:
-    name: Build (Linux ARM64)
-    runs-on: ubuntu-latest-arm
-    permissions:
-      actions: write
+  build-macos:
+    name: Build (macOS)
+    runs-on: macos-14
     needs: [vars]
+    strategy:
+      matrix:
+        arch: [x86_64, arm64]
     steps:
-      - name: Prepare (Ubuntu Linux)
+      - name: Prepare (macOS)
         run: |
-          sudo apt-get update 
-          sudo apt-get upgrade -y
-          sudo apt install build-essential lzma-dev liblzma-dev liblz4-dev libbz2-dev zlib1g-dev pkg-config clang-15 libc++-15-dev libc++abi-15-dev cmake ninja-build rustc cargo
-          rustup install nightly
-          rustup default nightly
+          brew update
+          brew upgrade
+          brew install xz lz4 pkg-config cmake ninja rust
       - name: Synchronize (source)
         uses: yogeshlonkar/wait-for-jobs@v0.2.1
         with:
@@ -162,16 +161,44 @@ jobs:
         run: |
           tar -xf magiskboot_*-src.tar.xz
           cd magiskboot_*-src/
-          CC=clang-15 CXX=clang++-15 cmake -DCMAKE_C_FLAGS="-Os" -DCMAKE_CXX_FLAGS="-g -Os -ffunction-sections -fdata-sections -fno-rtti -fno-exceptions" -DCMAKE_EXE_LINKER_FLAGS="-s -Wl,--gc-sections" -DPREFER_STATIC_LINKING=true -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
-          cmake --build build -j $(nproc)
+          export CMAKE_OSX_ARCHITECTURES=${{ matrix.arch }}
+          CC=clang CXX=clang++ cmake -DCMAKE_C_FLAGS="-Os" -DCMAKE_CXX_FLAGS="-g -Os -ffunction-sections -fdata-sections -fno-rtti -fno-exceptions" -DCMAKE_EXE_LINKER_FLAGS="-s -Wl,--gc-sections" -DPREFER_STATIC_LINKING=true -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j $(sysctl -n hw.ncpu)
           file build/magiskboot*
-          ldd build/magiskboot* || true
+          otool -L build/magiskboot* || true
           ./build/magiskboot* || true
-          mkdir -p /magiskboot_workspace/${{ env.progname }}-out
-          cp -afv build/magiskboot* /magiskboot_workspace/${{ env.progname }}-out
+          mkdir -p /tmp/${{ env.progname }}-out-${{ matrix.arch }}
+          cp -afv build/magiskboot* /tmp/${{ env.progname }}-out-${{ matrix.arch }}
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
+          name: ${{ env.progname }}-${{ needs.vars.outputs.short_sha }}-${{ needs.vars.outputs.build_type }}-${{ matrix.arch }}
+          path: /tmp/${{ env.progname }}-out-${{ matrix.arch }}/magiskboot*
+
+  merge-macos:
+    name: Merge (macOS)
+    runs-on: macos-latest
+    needs: [vars, build-macos]
+    steps:
+      - name: Download x86_64
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.progname }}-${{ needs.vars.outputs.short_sha }}-${{ needs.vars.outputs.build_type }}-x86_64
+          path: x86_64
+      - name: Download arm64
+        uses: actions/download-artifact@v4
+        with:
           name: ${{ env.progname }}-${{ needs.vars.outputs.short_sha }}-${{ needs.vars.outputs.build_type }}-arm64
-          path: ${{ github.workspace }}/${{ env.progname }}-out/magiskboot*
+          path: arm64
+      - name: Merge binaries
+        run: |
+          lipo -create x86_64/magiskboot* arm64/magiskboot* -output magiskboot
+          file magiskboot
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: error
+          name: ${{ env.progname }}-${{ needs.vars.outputs.short_sha }}-${{ needs.vars.outputs.build_type }}-macos
+          path: magiskboot
+
