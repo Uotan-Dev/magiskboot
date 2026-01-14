@@ -1,13 +1,6 @@
 name: build_all
 on:
   workflow_dispatch:
-    inputs:
-      debug-build:
-        type: boolean
-        description: "Build in debug mode instead of release"
-      full-lto:
-        type: boolean
-        description: "Whether to enable full LTO"
 
   push:
     branches-ignore:
@@ -189,12 +182,7 @@ jobs:
           cd magiskboot_*-src/
 
           echo -e "\n### configure ###\n"
-          CC=clang CXX=clang++ cmake -G Ninja -B build \
-                  -DCMAKE_BUILD_TYPE=${{ needs.vars.outputs.cmake_build_type }} \
-                  -DCMAKE_EXE_LINKER_FLAGS=" ${{ matrix.lto_ldflags }} ${{ needs.vars.outputs.ld_flags }}" \
-                  -DCMAKE_C_FLAGS=" ${{ needs.vars.outputs.c_flags }}" \
-                  -DCMAKE_CXX_FLAGS=" ${{ needs.vars.outputs.cxx_flags }}" \
-                  -DPREFER_STATIC_LINKING=ON -DFULL_RUST_LTO=${{ matrix.full_lto }}
+          CC=true cmake -G Ninja -B build -DCMAKE_C_COMPILER_WORKS=YES -DWITHOUT_BUILD=ON
 
           echo -e "\n### build ###\n"
           cmake --build build -j $(nproc) -v
