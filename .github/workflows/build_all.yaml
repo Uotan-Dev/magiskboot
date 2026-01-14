@@ -162,7 +162,7 @@ jobs:
           tar -xf magiskboot_*-src.tar.xz
           cd magiskboot_*-src/
           export CMAKE_OSX_ARCHITECTURES=${{ matrix.arch }}
-          CC=clang CXX=clang++ cmake -DCMAKE_C_FLAGS="-Os" -DCMAKE_CXX_FLAGS="-g -Os -ffunction-sections -fdata-sections -fno-rtti -fno-exceptions" -DCMAKE_EXE_LINKER_FLAGS="-s -Wl,--gc-sections" -DPREFER_STATIC_LINKING=true -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
+          cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
           cmake --build build -j $(sysctl -n hw.ncpu)
           file build/magiskboot*
           otool -L build/magiskboot* || true
