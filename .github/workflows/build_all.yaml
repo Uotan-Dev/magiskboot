@@ -164,15 +164,12 @@ jobs:
       options: --security-opt seccomp=unconfined
 
     steps:
-      - name: Prepare (Ubuntu)
-        if: matrix.os == 'ubuntu'
+      - name: Prepare (Alpine Linux)
+        if: matrix.os == 'alpine'
         run: |
-          apt update
-          DEBIAN_FRONTEND=noninteractive apt install -y wget tar file xxd \
-              build-essential liblzma-dev liblz4-dev libbz2-dev zlib1g-dev pkg-config clang-15 \
-              lld-15 libc++-15-dev libc++abi-15-dev cmake ninja-build rustc cargo
-          ln -s $(which clang-15) $(dirname $(which clang-15))/clang
-          ln -s $(which clang++-15) $(dirname $(which clang-15))/clang++
+          apk update
+          apk add build-base linux-headers bash wget file xxd xz-dev lz4-dev bzip2-dev zlib-dev \
+                  pkgconf clang lld libc++-dev cmake samurai rust cargo llvm-libunwind-dev
 
       - name: Synchronize (source)
         uses: yogeshlonkar/wait-for-jobs@v0.2.1
