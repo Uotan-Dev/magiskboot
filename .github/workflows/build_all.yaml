@@ -142,17 +142,13 @@ jobs:
     permissions:
       actions: write
     needs: [vars]
-    container:
-      image: alpine:edge
-      volumes:
-        - ${{ github.workspace }}:/magiskboot_workspace
-      options: --security-opt seccomp=unconfined
     steps:
-      - name: Prepare (Alpine Linux)
+      - name: Prepare (Ubuntu Linux)
         run: |
-          apk update
-          apk add build-base linux-headers bash wget file xxd xz-dev lz4-dev bzip2-dev zlib-dev \
-                  pkgconf clang lld libc++-dev cmake samurai rust cargo llvm-libunwind-dev
+          sudo apt-get update && apt-get upgrade -y
+          sudo apt install build-essential lzma-dev liblzma-dev liblz4-dev libbz2-dev \
+                 zlib1g-dev pkg-config clang-15 libc++-15-dev libc++abi-15-dev cmake \
+                 ninja-build rustc cargo
       - name: Synchronize (source)
         uses: yogeshlonkar/wait-for-jobs@v0.2.1
         with:
@@ -165,7 +161,7 @@ jobs:
         run: |
           tar -xf magiskboot_*-src.tar.xz
           cd magiskboot_*-src/
-          CC=clang CXX=clang++ cmake -DCMAKE_C_FLAGS="-Os" -DCMAKE_CXX_FLAGS="-g -Os -ffunction-sections -fdata-sections -fno-rtti -fno-exceptions" -DCMAKE_EXE_LINKER_FLAGS="-s -Wl,--gc-sections" -DPREFER_STATIC_LINKING=true -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
+          CC=clang-15 CXX=clang++-15 cmake -DCMAKE_C_FLAGS="-Os" -DCMAKE_CXX_FLAGS="-g -Os -ffunction-sections -fdata-sections -fno-rtti -fno-exceptions" -DCMAKE_EXE_LINKER_FLAGS="-s -Wl,--gc-sections" -DPREFER_STATIC_LINKING=true -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
           cmake --build build -j $(nproc)
           file build/magiskboot*
           ldd build/magiskboot* || true
