@@ -174,13 +174,6 @@ jobs:
           ln -s $(which clang-15) $(dirname $(which clang-15))/clang
           ln -s $(which clang++-15) $(dirname $(which clang-15))/clang++
 
-      - name: Prepare (Alpine Linux)
-        if: matrix.os == 'alpine'
-        run: |
-          apk update
-          apk add build-base linux-headers bash wget file xxd xz-dev lz4-dev bzip2-dev zlib-dev \
-                  pkgconf clang lld libc++-dev cmake samurai rust cargo llvm-libunwind-dev
-
       - name: Synchronize (source)
         uses: yogeshlonkar/wait-for-jobs@v0.2.1
         with:
@@ -220,11 +213,6 @@ jobs:
         run: |
           cd magiskboot_*-src/
           ./scripts/magiskboot_test.sh /magiskboot_workspace/${{ env.progname }}-out/magiskboot*
-
-      # Fail fast
-      - name: Cancel other jobs
-        if: failure()
-        uses: andymckay/cancel-action@0.4
 
 #  build-macos:
 #    name: Build (macOS)
@@ -467,108 +455,108 @@ jobs:
 #        if: failure()
 #        uses: andymckay/cancel-action@0.4
 
-  build-windows-cross:
-    name: Build (Windows) (Cross)
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    needs: [vars]
-    strategy:
-      matrix:
-        include:
-          # Link issue cannot solve
-          #- crt: msvcrt
-          #  upload_suffix: "i686-standalone"
-          #  cmake_arch: x86
-          #  cc: i686-w64-mingw32-clang
-          #  cxx: i686-w64-mingw32-clang++
-          #  strip: i686-w64-mingw32-strip
-          #  vcpkg_triplet: x86-mingw-static
-          #  rust_target: i686-pc-windows-gnu
-          #  build_rust_std: "OFF"
+#  build-windows-cross:
+#    name: Build (Windows) (Cross)
+#    runs-on: ubuntu-latest
+#    permissions:
+#      actions: write
+#    needs: [vars]
+#    strategy:
+#      matrix:
+#        include:
+#          # Link issue cannot solve
+#          #- crt: msvcrt
+#          #  upload_suffix: "i686-standalone"
+#          #  cmake_arch: x86
+#          #  cc: i686-w64-mingw32-clang
+#          #  cxx: i686-w64-mingw32-clang++
+#          #  strip: i686-w64-mingw32-strip
+#          #  vcpkg_triplet: x86-mingw-static
+#          #  rust_target: i686-pc-windows-gnu
+#          #  build_rust_std: "OFF"#
+#
+#          - crt: ucrt
+#            upload_suffix: "i686-standalone"
+#            cmake_arch: x86
+#            cc: i686-w64-mingw32-clang
+#            cxx: i686-w64-mingw32-clang++
+#            strip: i686-w64-mingw32-strip
+#            ldlibs: "-lbcrypt"
+#            vcpkg_triplet: x86-mingw-static
+#            rust_target: i686-pc-windows-gnullvm
+#            build_rust_std: "OFF"
 
-          - crt: ucrt
-            upload_suffix: "i686-standalone"
-            cmake_arch: x86
-            cc: i686-w64-mingw32-clang
-            cxx: i686-w64-mingw32-clang++
-            strip: i686-w64-mingw32-strip
-            ldlibs: "-lbcrypt"
-            vcpkg_triplet: x86-mingw-static
-            rust_target: i686-pc-windows-gnullvm
-            build_rust_std: "OFF"
+#          - crt: ucrt
+#            upload_suffix: "x86_64-standalone"
+#            cmake_arch: x86_64
+#            cc: x86_64-w64-mingw32-clang
+#            cxx: x86_64-w64-mingw32-clang++
+#            strip: x86_64-w64-mingw32-strip
+#            ldlibs: "-lbcrypt"
+#            vcpkg_triplet: x64-mingw-static
+#            rust_target: x86_64-pc-windows-gnullvm
+#            build_rust_std: "OFF"#
+#
+#          - crt: ucrt
+#            upload_suffix: "arm64-standalone"
+#           cmake_arch: aarch64
+#            cc: aarch64-w64-mingw32-clang
+#            cxx: aarch64-w64-mingw32-clang++
+#            strip: aarch64-w64-mingw32-strip#
 
-          - crt: ucrt
-            upload_suffix: "x86_64-standalone"
-            cmake_arch: x86_64
-            cc: x86_64-w64-mingw32-clang
-            cxx: x86_64-w64-mingw32-clang++
-            strip: x86_64-w64-mingw32-strip
-            ldlibs: "-lbcrypt"
-            vcpkg_triplet: x64-mingw-static
-            rust_target: x86_64-pc-windows-gnullvm
-            build_rust_std: "OFF"
+#            # XXX: what? why this wasn't detected by Corrosion automatically?
+#            ldlibs: "-lbcrypt"#
 
-          - crt: ucrt
-            upload_suffix: "arm64-standalone"
-            cmake_arch: aarch64
-            cc: aarch64-w64-mingw32-clang
-            cxx: aarch64-w64-mingw32-clang++
-            strip: aarch64-w64-mingw32-strip
+#            vcpkg_triplet: arm64-mingw-static
+#            rust_target: aarch64-pc-windows-gnullvm
+#            build_rust_std: "OFF"
+#    env:
+#      toolchain_url: https://github.com/mstorsjo/llvm-mingw/releases/download
+#      toolchain_ver: 20250709
+#      upload_prefix: "windows-mingw-w64"
+#
+#    steps:
+#      - name: Prepare (Host)
+#        run: |
+#          sudo apt update
+#          sudo DEBIAN_FRONTEND=noninteractive apt install -y curl wget tar file \
+#                                        build-essential pkg-config cmake ninja-build rustup#
+#
+#      - name: Cache (LLVM MinGW)
+#        id: cache-llvm-mingw
+#        uses: actions/cache@v4
+#        with:
+#          path: ${{ github.workspace }}/${{ env.progname }}-llvm-mingw
+#          key: llvm-mingw-${{ env.toolchain_ver }}-${{ matrix.crt }}-${{ runner.os }}#
+#
+#      - name: Prepare (LLVM MinGW)
+#        if: steps.cache-llvm-mingw.outputs.cache-hit != 'true'
+#        run: |
+#          rm -rf ${{ env.progname }}-llvm-mingw.tar.xz $GITHUB_WORKSPACE/${{ env.progname }}-llvm-mingw
+#          wget ${{ env.toolchain_url }}/${{ env.toolchain_ver }}/llvm-mingw-${{ env.toolchain_ver }}-${{ matrix.crt }}-ubuntu-22.04-x86_64.tar.xz \
+#                -O ${{ env.progname }}-llvm-mingw.tar.xz
+#          mkdir -p $GITHUB_WORKSPACE/${{ env.progname }}-llvm-mingw
+#          tar -x -f ${{ env.progname }}-llvm-mingw.tar.xz -C $GITHUB_WORKSPACE/${{ env.progname }}-llvm-mingw --strip-components=1
+#          rm -f ${{ env.progname }}-llvm-mingw.tar.xz#
 
-            # XXX: what? why this wasn't detected by Corrosion automatically?
-            ldlibs: "-lbcrypt"
-
-            vcpkg_triplet: arm64-mingw-static
-            rust_target: aarch64-pc-windows-gnullvm
-            build_rust_std: "OFF"
-    env:
-      toolchain_url: https://github.com/mstorsjo/llvm-mingw/releases/download
-      toolchain_ver: 20250709
-      upload_prefix: "windows-mingw-w64"
-
-    steps:
-      - name: Prepare (Host)
-        run: |
-          sudo apt update
-          sudo DEBIAN_FRONTEND=noninteractive apt install -y curl wget tar file \
-                                        build-essential pkg-config cmake ninja-build rustup
-
-      - name: Cache (LLVM MinGW)
-        id: cache-llvm-mingw
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/${{ env.progname }}-llvm-mingw
-          key: llvm-mingw-${{ env.toolchain_ver }}-${{ matrix.crt }}-${{ runner.os }}
-
-      - name: Prepare (LLVM MinGW)
-        if: steps.cache-llvm-mingw.outputs.cache-hit != 'true'
-        run: |
-          rm -rf ${{ env.progname }}-llvm-mingw.tar.xz $GITHUB_WORKSPACE/${{ env.progname }}-llvm-mingw
-          wget ${{ env.toolchain_url }}/${{ env.toolchain_ver }}/llvm-mingw-${{ env.toolchain_ver }}-${{ matrix.crt }}-ubuntu-22.04-x86_64.tar.xz \
-                -O ${{ env.progname }}-llvm-mingw.tar.xz
-          mkdir -p $GITHUB_WORKSPACE/${{ env.progname }}-llvm-mingw
-          tar -x -f ${{ env.progname }}-llvm-mingw.tar.xz -C $GITHUB_WORKSPACE/${{ env.progname }}-llvm-mingw --strip-components=1
-          rm -f ${{ env.progname }}-llvm-mingw.tar.xz
-
-      - name: Prepare (PATH)
-        run: |
-          echo "$GITHUB_WORKSPACE/${{ env.progname }}-llvm-mingw/bin" | tee -a $GITHUB_PATH
-
-      - name: Prepare (Environment)
-        run: |
-          echo "vcpkg_root=$VCPKG_INSTALLATION_ROOT" | tee -a $GITHUB_ENV
-
-      - name: Cache (Cross)
-        id: cache-cross-vcpkgs
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.vcpkg_root }}/installed
-          key: cross-vcpkgs-v2-${{ matrix.vcpkg_triplet }}-llvm-mingw-${{ env.toolchain_ver }}-${{ matrix.crt }}
-
-      - name: Prepare (Cross)
-        run: |
-          vcpkg install --host-triplet=${{ matrix.vcpkg_triplet }} liblzma lz4
+#      - name: Prepare (PATH)
+#        run: |
+#          echo "$GITHUB_WORKSPACE/${{ env.progname }}-llvm-mingw/bin" | tee -a $GITHUB_PATH#
+#
+#      - name: Prepare (Environment)
+#        run: |
+#          echo "vcpkg_root=$VCPKG_INSTALLATION_ROOT" | tee -a $GITHUB_ENV#
+#
+#      - name: Cache (Cross)
+#        id: cache-cross-vcpkgs
+#        uses: actions/cache@v4
+#        with:
+#          path: ${{ env.vcpkg_root }}/installed
+#          key: cross-vcpkgs-v2-${{ matrix.vcpkg_triplet }}-llvm-mingw-${{ env.toolchain_ver }}-${{ matrix.crt }}#
+#
+#      - name: Prepare (Cross)
+#        run: |
+#          vcpkg install --host-triplet=${{ matrix.vcpkg_triplet }} liblzma lz4#
 
       - name: Prepare (Rust)
         if: matrix.build_rust_std == 'OFF'
