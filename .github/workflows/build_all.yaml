@@ -99,9 +99,6 @@ jobs:
     permissions:
       actions: write
     needs: [vars]
-    strategy:
-      matrix:
-        arch: [x64, arm64]
     container:
       image: alpine:edge
       volumes:
@@ -125,23 +122,16 @@ jobs:
         run: |
           tar -xf magiskboot_*-src.tar.xz
           cd magiskboot_*-src/
-          if [[ "${{ matrix.arch }}" == "x64" ]]; then
-            CC=clang CXX=clang++ cmake -DCMAKE_C_FLAGS="-Os" -DCMAKE_CXX_FLAGS="-g -Os -ffunction-sections -fdata-sections -fno-rtti -fno-exceptions" -DCMAKE_EXE_LINKER_FLAGS="-s -Wl,--gc-sections" -DPREFER_STATIC_LINKING=true -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
-          elif [[ "${{ matrix.arch }}" == "arm64" ]]; then
-            export RUST_TARGET=aarch64-unknown-linux-musl
-            CC=clang CXX=clang++ cmake -DCMAKE_C_FLAGS="--target=aarch64-linux-musl -Os" -DCMAKE_CXX_FLAGS="--target=aarch64-linux-musl -g -Os -ffunction-sections -fdata-sections -fno-rtti -fno-exceptions" -DCMAKE_EXE_LINKER_FLAGS="--target=aarch64-linux-musl -s -Wl,--gc-sections" -DPREFER_STATIC_LINKING=true -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
-          fi
+          CC=clang CXX=clang++ cmake -DCMAKE_C_FLAGS="-Os" -DCMAKE_CXX_FLAGS="-g -Os -ffunction-sections -fdata-sections -fno-rtti -fno-exceptions" -DCMAKE_EXE_LINKER_FLAGS="-s -Wl,--gc-sections" -DPREFER_STATIC_LINKING=true -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
           cmake --build build -j $(nproc)
           file build/magiskboot*
           ldd build/magiskboot* || true
-          if [[ "${{ matrix.arch }}" == "x64" ]]; then
-            ./build/magiskboot* || true
-          fi
+          ./build/magiskboot* || true
           mkdir -p /magiskboot_workspace/${{ env.progname }}-out
           cp -afv build/magiskboot* /magiskboot_workspace/${{ env.progname }}-out
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
-          name: ${{ env.progname }}-${{ needs.vars.outputs.short_sha }}-${{ needs.vars.outputs.build_type }}-${{ matrix.arch }}
+          name: ${{ env.progname }}-${{ needs.vars.outputs.short_sha }}-${{ needs.vars.outputs.build_type }}
           path: ${{ github.workspace }}/${{ env.progname }}-out/magiskboot*
