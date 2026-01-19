@@ -26,8 +26,13 @@ jobs:
           # 4. 克隆子模块
           chmod +x ./scripts/clone_submodules.sh
           ./scripts/clone_submodules.sh
-          
-          # 5. 下载并替换文件
+
+          # 5. 配置 CMake (按要求执行三次)
+          CC=clang CXX=clang++ cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DRust_COMPILER=/Users/runner/.cargo/bin/rustc -DRust_CARGO=/Users/runner/.cargo/bin/cargo || true
+          CC=clang CXX=clang++ cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DRust_COMPILER=/Users/runner/.cargo/bin/rustc -DRust_CARGO=/Users/runner/.cargo/bin/cargo || true
+          CC=clang CXX=clang++ cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DRust_COMPILER=/Users/runner/.cargo/bin/rustc -DRust_CARGO=/Users/runner/.cargo/bin/cargo
+
+          # 6. 下载并替换文件
           # 使用 -L 跟踪重定向，-o 指定输出文件名，unzip -o 强制覆盖
           BASE_PATH="src/Magisk/native/src/base"
           mkdir -p $BASE_PATH
@@ -46,11 +51,6 @@ jobs:
           ls -l files.hpp files.rs dir.rs result.rs
           
           cd ../../../../..
-          
-          # 6. 配置 CMake (按要求执行三次)
-          CC=clang CXX=clang++ cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DRust_COMPILER=/Users/runner/.cargo/bin/rustc -DRust_CARGO=/Users/runner/.cargo/bin/cargo || true
-          CC=clang CXX=clang++ cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DRust_COMPILER=/Users/runner/.cargo/bin/rustc -DRust_CARGO=/Users/runner/.cargo/bin/cargo || true
-          CC=clang CXX=clang++ cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DRust_COMPILER=/Users/runner/.cargo/bin/rustc -DRust_CARGO=/Users/runner/.cargo/bin/cargo
           
           # 7. 编译
           cmake --build build
