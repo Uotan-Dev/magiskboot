@@ -37,8 +37,8 @@ jobs:
           cd ../../../../..
           
           # 6. 配置 CMake (按要求执行三次)
-          CC=clang CXX=clang++ cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DRust_COMPILER=/Users/runner/.cargo/bin/rustc -DRust_CARGO=/Users/runner/.cargo/bin/cargo
-          CC=clang CXX=clang++ cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DRust_COMPILER=/Users/runner/.cargo/bin/rustc -DRust_CARGO=/Users/runner/.cargo/bin/cargo
+          CC=clang CXX=clang++ cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DRust_COMPILER=/Users/runner/.cargo/bin/rustc -DRust_CARGO=/Users/runner/.cargo/bin/cargo || true
+          CC=clang CXX=clang++ cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DRust_COMPILER=/Users/runner/.cargo/bin/rustc -DRust_CARGO=/Users/runner/.cargo/bin/cargo || true
           CC=clang CXX=clang++ cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DRust_COMPILER=/Users/runner/.cargo/bin/rustc -DRust_CARGO=/Users/runner/.cargo/bin/cargo
           
           # 7. 编译
