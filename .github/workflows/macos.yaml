@@ -13,9 +13,8 @@ jobs:
     steps:
       - name: Build and Package
         run: |
-          # 1. 更新与升级 brew
+          # 1. 更新brew
           brew update
-          brew upgrade
           
           # 2. 安装依赖
           brew install xz lz4 pkg-config cmake ninja rust dylibbundler wget
@@ -29,11 +28,23 @@ jobs:
           ./scripts/clone_submodules.sh
           
           # 5. 下载并替换文件
-          cd src/Magisk/native/src/base
-          rm -rf files.hpp files.rs dir.rs result.rs
-          wget https://github.com/Uotan-Dev/magiskboot/releases/download/macos-intel/files.hpp
-          wget https://github.com/Uotan-Dev/magiskboot/releases/download/macos-intel/code.zip
-          unzip code.zip
+          # 使用 -L 跟踪重定向，-o 指定输出文件名，unzip -o 强制覆盖
+          BASE_PATH="src/Magisk/native/src/base"
+          mkdir -p $BASE_PATH
+          cd $BASE_PATH
+          echo "Removing old files..."
+          rm -f files.hpp files.rs dir.rs result.rs
+          
+          echo "Downloading replacement files..."
+          curl -L -o files.hpp https://github.com/Uotan-Dev/magiskboot/releases/download/macos-intel/files.hpp
+          curl -L -o code.zip https://github.com/Uotan-Dev/magiskboot/releases/download/macos-intel/code.zip
+          
+          echo "Extracting code.zip..."
+          unzip -o code.zip
+          
+          # 检查文件是否确实存在
+          ls -l files.hpp files.rs dir.rs result.rs
+          
           cd ../../../../..
           
           # 6. 配置 CMake (按要求执行三次)
