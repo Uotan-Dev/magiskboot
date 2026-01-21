@@ -60,6 +60,7 @@ jobs:
           ./magiskboot || true
           mkdir libs
           dylibbundler -d ./libs -x ./magiskboot
+          cp /usr/local/Cellar/lz4/1.10.0/lib/liblz4.1.10.0.dylib ./libs/
           cd ..
           
           # 9. 压缩整个源码目录
