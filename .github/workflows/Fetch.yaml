@@ -1,0 +1,59 @@
+name: Fetch Binary Tools Source
+
+on:
+  workflow_dispatch: # 允许手动触发执行
+
+jobs:
+  fetch-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Current Repository
+        uses: actions/checkout@v4
+
+      - name: Create Source Directory
+        run: mkdir -p binary_sources
+
+      - name: Clone Tool Repositories
+        run: |
+          cd binary_sources
+          # 1. Magisk (magiskboot)
+          git clone --depth 1 https://github.com/topjohnwu/Magisk.git magisk
+
+          # 2. E2fsprogs (e2fsdroid, mke2fs)
+          git clone --depth 1 https://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git e2fsprogs
+
+          # 3. Erofs-utils (extract.erofs, mkfs.erofs)
+          git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/xiang/erofs-utils.git erofs-utils
+
+          # 4. F2fs-tools (mkfs.f2fs, sload.f2fs)
+          git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/jaegeuk/f2fs-tools.git f2fs-tools
+
+          # 5. DTC (dtb tool)
+          git clone --depth 1 https://git.kernel.org/pub/scm/utils/dtc/dtc.git dtc
+
+          # 6. Brotli
+          git clone --depth 1 https://github.com/google/brotli.git brotli
+
+          # 7. Zstd
+          git clone --depth 1 https://github.com/facebook/zstd.git zstd
+
+          # 8. Busybox-w32 (Windows port)
+          git clone --depth 1 https://github.com/rmyorston/busybox-w32.git busybox-w32
+
+          # 9. AOSP Core Components (via GitHub Mirror)
+          # 注意：这些仓库可能较大，仅克隆核心部分
+          git clone --depth 1 https://github.com/aosp-mirror/platform_system_extras.git aosp_system_extras
+          git clone --depth 1 https://github.com/aosp-mirror/platform_system_core.git aosp_system_core
+
+      - name: Remove .git Files to Save Space
+        run: find binary_sources -name ".git" -type d -exec rm -rf {} +
+
+      - name: Compress Sources
+        run: zip -r binary_tools_sources.zip binary_sources
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-tools-sources
+          path: binary_tools_sources.zip
+          retention-days: 7
